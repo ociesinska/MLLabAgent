@@ -1,0 +1,21 @@
+venv/
+.venv/
+.env.*
+.venv *
+
+pycache/
+*.py[cod]
+
+build/
+dist/
+*.egg-info/
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+.vscode/
+.idea/
+.DS_Store
+
+ml_lab_agent.egg-info

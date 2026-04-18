@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=65"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ml-lab-agent"
+version = "0.1.0"
+description = "AI Agent for ML Experimentation"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "Aleksandra Ciesińska" }]
+
+dependencies = [
+    "fastapi>=0.136.0",
+    "langchain>=1.2.15",
+    "langgraph>=1.1.8",
+    "mlflow>=3.11.1",
+    "pydantic>=2.13.2",
+    "pydantic-settings>=2.13.1",
+    "python-multipart>=0.0.26",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=1.20.1",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.15.11",
+]
+
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 150
+target-version = "py311"
+extend-exclude = [
+  ".venv",
+  "artifacts",
+  "data",
+  "notebooks",
+  "*.ipynb",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "UP"]
+
+[tool.ruff.format]
+exclude = ["*.ipynb"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
