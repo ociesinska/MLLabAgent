@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from ml_lab_agent.api.routes.chat import chat_router
 from ml_lab_agent.api.routes.experiments import experiment_router
 from ml_lab_agent.api.routes.health import health_router
 
@@ -8,6 +9,8 @@ def create_app() -> FastAPI:
     app = FastAPI()
     app.include_router(health_router)
     app.include_router(experiment_router)
+    app.include_router(chat_router)
+
     return app
 
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from ml_lab_agent.schemas.exp_schemas import CompareRequest, CompareResponse, RunSummary
 from ml_lab_agent.services.exp_services import compare_experiments, return_all_runs, select_run
+from ml_lab_agent.services.llm_service import generate_compare_summary
 
 experiment_router = APIRouter()
 
@@ -23,5 +24,15 @@ def get_run(run_id: str):
 def post_compare_experiments(request: CompareRequest):
     try:
         return compare_experiments(request.run_ids)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@experiment_router.post("/experiments/compare-summary")
+def compare_summary(request: CompareRequest):
+    try:
+        compare_results = compare_experiments(request.run_ids)
+        generated_summary = generate_compare_summary(compare_results)
+        return {"compare_results": compare_results, "generated_summary": generated_summary}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

@@ -13,7 +13,8 @@ authors = [{ name = "Aleksandra Ciesińska" }]
 
 dependencies = [
     "fastapi>=0.136.0",
-    "langchain>=1.2.15",
+    "google-genai>=1.73.1",
+    "langchain[google-genai]>=1.2.15",
     "langgraph>=1.1.8",
     "mlflow>=3.11.1",
     "pydantic>=2.13.2",
