@@ -1,8 +1,13 @@
 from fastapi import APIRouter, HTTPException
 
-from ml_lab_agent.schemas.exp_schemas import CompareRequest, CompareResponse, RunSummary
+from ml_lab_agent.schemas.exp_schemas import CompareRequest, CompareResponse, RunSummary, CompareSummaryResponse
+from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput
 from ml_lab_agent.services.exp_services import compare_experiments, return_all_runs, select_run
-from ml_lab_agent.services.llm_service import generate_compare_summary
+from ml_lab_agent.services.llm_service import (
+LLMProviderError,
+LLMResponseFormatError,
+generate_compare_summary,
+)
 
 experiment_router = APIRouter()
 
@@ -28,7 +33,7 @@ def post_compare_experiments(request: CompareRequest):
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@experiment_router.post("/experiments/compare-summary")
+@experiment_router.post("/experiments/compare-summary", response_model=CompareSummaryResponse)
 def compare_summary(request: CompareRequest):
     try:
         compare_results = compare_experiments(request.run_ids)
@@ -36,3 +41,7 @@ def compare_summary(request: CompareRequest):
         return {"compare_results": compare_results, "generated_summary": generated_summary}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except LLMResponseFormatError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    except LLMProviderError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e

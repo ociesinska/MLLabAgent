@@ -1,14 +1,24 @@
+import json
 import os
+from json import JSONDecodeError
 
 from google import genai
-import json
+from pydantic import ValidationError
 from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput
+
+class LLMResponseFormatError(Exception):
+    pass
+
+class LLMProviderError(Exception):
+    pass
+
 
 def _get_client() -> genai.Client:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("Missing GEMINI_API_KEY environment variable.")
     return genai.Client(api_key=api_key)
+
 
 
 def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
@@ -42,12 +52,21 @@ def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
     Experiment comparison result:
     {compare_result}
     """
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
-        contents=prompt,
-    )
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+        )
+    except Exception as e:
+        raise LLMProviderError("LLM provider unavailable.") from e
 
-    raw_text = response.text
-    parsed = json.loads(raw_text)
+    try:
+        raw_text = response.text
+        parsed = json.loads(raw_text)
+        return CompareSummaryOutput.model_validate(parsed)
+    except (JSONDecodeError, ValidationError) as e:
+        raise LLMResponseFormatError("Invalid LLM response format.") from e
 
     return CompareSummaryOutput.model_validate(parsed)
+
+

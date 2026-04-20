@@ -1,10 +1,11 @@
+from unittest.mock import Mock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
-from ml_lab_agent.main import app
-from ml_lab_agent.services.llm_service import generate_compare_summary
-from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput
 
+from ml_lab_agent.main import app
+from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput
+from ml_lab_agent.services.llm_service import generate_compare_summary
 
 
 @pytest.fixture
@@ -13,7 +14,7 @@ def client():
 
 
 def test_chat_response_show_all(client):
-    response = client.post('/chat', json={"message": "show"})
+    response = client.post("/chat", json={"message": "show"})
 
     assert response.status_code == 200
     body = response.json()
@@ -24,8 +25,9 @@ def test_chat_response_show_all(client):
     assert body["error"] is None
     assert isinstance(body["data"], list)
 
+
 def test_chat_response_show_one_id(client):
-    response = client.post('/chat', json={"message": "show run 1"})
+    response = client.post("/chat", json={"message": "show run 1"})
 
     assert response.status_code == 200
     body = response.json()
@@ -36,8 +38,9 @@ def test_chat_response_show_one_id(client):
     assert body["error"] is None
     assert isinstance(body["data"], dict)
 
+
 def test_chat_response_summarize_compare_two(client):
-    response = client.post('/chat', json={"message": "compare run 1 and run 2"})
+    response = client.post("/chat", json={"message": "compare run 1 and run 2"})
 
     assert response.status_code == 200
     body = response.json()
@@ -49,7 +52,7 @@ def test_chat_response_summarize_compare_two(client):
 
 
 def test_chat_response_unknown_intent(client):
-    response = client.post('/chat', json={"message": "hello there"})
+    response = client.post("/chat", json={"message": "hello there"})
 
     assert response.status_code == 200
     body = response.json()
@@ -60,15 +63,16 @@ def test_chat_response_unknown_intent(client):
 
 
 def test_chat_response_summarize_compare_three(client):
-    response = client.post('/chat', json={"message": "compare run 1, 2 and 3"})
+    response = client.post("/chat", json={"message": "compare run 1, 2 and 3"})
 
     assert response.status_code == 200
     body = response.json()
 
     assert "message" in body
     assert body["intent"] == "compare"
-    assert body["error"] == 'Can only accept two unique runs to compare.'
+    assert body["error"] == "Can only accept two unique runs to compare."
     assert body["data"] is None
+
 
 def test_generate_compare_summary_returns_valid_pydantic_object(client):
     compare_result = {
@@ -111,11 +115,8 @@ def test_generate_compare_summary_returns_valid_pydantic_object(client):
 
         result = generate_compare_summary(compare_result)
 
-    
     assert isinstance(result, CompareSummaryOutput)
     assert result.summary.startswith("Run 2 performed better overall.")
     assert len(result.metric_insights) == 2
     assert len(result.next_experiment_ideas) == 2
     assert "augmentation" in result.next_experiment_ideas[0].lower()
-
-
