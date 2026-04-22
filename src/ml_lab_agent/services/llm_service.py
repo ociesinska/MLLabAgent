@@ -4,10 +4,13 @@ from json import JSONDecodeError
 
 from google import genai
 from pydantic import ValidationError
+
 from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput
+
 
 class LLMResponseFormatError(Exception):
     pass
+
 
 class LLMProviderError(Exception):
     pass
@@ -18,7 +21,6 @@ def _get_client() -> genai.Client:
     if not api_key:
         raise ValueError("Missing GEMINI_API_KEY environment variable.")
     return genai.Client(api_key=api_key)
-
 
 
 def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
@@ -66,7 +68,3 @@ def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
         return CompareSummaryOutput.model_validate(parsed)
     except (JSONDecodeError, ValidationError) as e:
         raise LLMResponseFormatError("Invalid LLM response format.") from e
-
-    return CompareSummaryOutput.model_validate(parsed)
-
-

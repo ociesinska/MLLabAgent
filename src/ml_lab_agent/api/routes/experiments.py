@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException
 
-from ml_lab_agent.schemas.exp_schemas import CompareRequest, CompareResponse, RunSummary, CompareSummaryResponse
-from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput
+from ml_lab_agent.schemas.exp_schemas import CompareRequest, CompareResponse, CompareSummaryResponse, RunSummary
 from ml_lab_agent.services.exp_services import compare_experiments, return_all_runs, select_run
 from ml_lab_agent.services.llm_service import (
-LLMProviderError,
-LLMResponseFormatError,
-generate_compare_summary,
+    LLMProviderError,
+    LLMResponseFormatError,
+    generate_compare_summary,
 )
 
 experiment_router = APIRouter()

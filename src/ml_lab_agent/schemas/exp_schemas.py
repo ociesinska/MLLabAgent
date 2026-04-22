@@ -1,5 +1,7 @@
 from pydantic import BaseModel
+
 from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput
+
 
 class RunSummary(BaseModel):
     run_id: str
@@ -22,6 +24,7 @@ class CompareResponse(BaseModel):
     compared_run_ids: list[str]
     metrics_comparison: dict[str, MetricsComparison]
     overall_winner: str | None
+
 
 class CompareSummaryResponse(BaseModel):
     compare_results: CompareResponse
