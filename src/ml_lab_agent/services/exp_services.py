@@ -1,23 +1,65 @@
-from ml_lab_agent.data.dummy_data import data
+from mlflow.client import MlflowClient
+
+from ml_lab_agent.repositories.mlflow_run_repository import MlflowRunRepository
+from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
+
+client = MlflowClient()
+repository = MlflowRunRepository(client, "MLLabAgent Demo Runs")
 
 
 def return_all_runs():
-    return data
+    return repository.list_runs()
 
 
 def select_run(run_id: str):
-    for run in data:
-        if run["run_id"] == run_id:
-            return run
-    return None
+    return repository.get_run(run_id)
 
 
 def get_run_metrics(run_id: str):
-    for run in data:
-        if run["run_id"] == run_id:
-            metrics = run["metrics"]
-            return metrics
-    return None
+    return repository.get_run_metrics(run_id)
+
+
+def resolve_run_id(candidate: str) -> str:
+    # Full run_id provided.
+    run = repository.get_run(candidate)
+    if run is not None:
+        return candidate
+
+    # run_id prefix provided
+    matches = repository.find_runs_by_prefix(candidate)
+
+    if len(matches) == 0:
+        raise ValueError(f"No run found for identifier: {candidate}.")
+    elif len(matches) > 1:
+        matched_ids = [run["run_id"] for run in matches]
+        raise ValueError(f"Run identifier '{candidate}' is ambiguous. Matches: {matched_ids}")
+    return matches[0]["run_id"]
+
+
+def resolve_run_ids(candidates: list[str]) -> list[str]:
+    return [resolve_run_id(candidate) for candidate in candidates]
+
+
+def resolve_single_run_identifier(run_identifier: str) -> str:
+    try:
+        return resolve_run_id(run_identifier)
+    except ValueError:
+        pass
+
+    runs_by_name = repository.find_runs_by_name(run_identifier)
+    if len(runs_by_name) == 0:
+        raise ValueError(f"No run found for identifier: {run_identifier}.")
+    elif len(runs_by_name) > 1:
+        raise AmbiguousRunIdentifier(run_identifier, runs_by_name)
+    return runs_by_name[0]["run_id"]
+
+
+def resolve_run_identifiers(run_identifiers: list[str]) -> list[str]:
+    run_ids = []
+    for run_identifier in run_identifiers:
+        resolved_id = resolve_single_run_identifier(run_identifier)
+        run_ids.append(resolved_id)
+    return run_ids
 
 
 def compare_experiments(run_ids: list[str]):
@@ -37,7 +79,8 @@ def compare_experiments(run_ids: list[str]):
         metrics_by_run[run_id] = run["metrics"]
 
     run_1_id, run_2_id = unique_run_ids
-    metrics_1, metrics_2 = metrics_by_run.values()
+    metrics_1 = metrics_by_run[run_1_id]
+    metrics_2 = metrics_by_run[run_2_id]
 
     common_metrics = set(metrics_1.keys()) & set(metrics_2.keys())
     if len(common_metrics) == 0:
@@ -59,9 +102,13 @@ def compare_experiments(run_ids: list[str]):
         else:
             winner = None
 
-        difference = abs(value_1 - value_2)
+        metrics_comparison[metric_name] = {
+            "value_run_1": value_1,
+            "value_run_2": value_2,
+            "winner": winner,
+            "difference": abs(value_1 - value_2),
+        }
 
-        metrics_comparison[metric_name] = {"value_run_1": value_1, "value_run_2": value_2, "winner": winner, "difference": difference}
     results["metrics_comparison"] = metrics_comparison
     if win_count[run_1_id] > win_count[run_2_id]:
         results["overall_winner"] = run_1_id

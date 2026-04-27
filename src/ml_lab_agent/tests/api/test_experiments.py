@@ -9,7 +9,78 @@ def client():
     return TestClient(app)
 
 
-def test_list_runs_returns_200_and_lists(client):
+@pytest.fixture
+def mock_experiments_dependencies(monkeypatch):
+    runs = {
+        "1": {
+            "run_id": "1",
+            "experiment_name": "MLLabAgent Demo Runs",
+            "metrics": {
+                "accuracy": 0.81,
+                "f1_score": 0.78,
+            },
+            "params": {},
+            "tags": {},
+        },
+        "2": {
+            "run_id": "2",
+            "experiment_name": "MLLabAgent Demo Runs",
+            "metrics": {
+                "accuracy": 0.85,
+                "f1_score": 0.82,
+            },
+            "params": {},
+            "tags": {},
+        },
+        "3": {
+            "run_id": "3",
+            "experiment_name": "MLLabAgent Demo Runs",
+            "metrics": {
+                "accuracy": 0.89,
+                "f1_score": 0.87,
+            },
+            "params": {},
+            "tags": {},
+        },
+    }
+
+    def _return_all_runs():
+        return list(runs.values())
+
+    def _select_run(run_id: str):
+        return runs.get(run_id)
+
+    def _compare_experiments(run_ids: list[str]):
+        unique_run_ids = list(dict.fromkeys(run_ids))
+        if len(unique_run_ids) < 2:
+            raise ValueError("Need at least two unique runs to compare.")
+        if len(unique_run_ids) > 2:
+            raise ValueError("Can only accept two unique runs to compare.")
+
+        for run_id in unique_run_ids:
+            if run_id not in runs:
+                raise ValueError(f"No such run id: {run_id}.")
+
+        run_1, run_2 = unique_run_ids
+        return {
+            "compared_run_ids": [run_1, run_2],
+            "metrics_comparison": {
+                "accuracy": {
+                    "value_run_1": runs[run_1]["metrics"]["accuracy"],
+                    "value_run_2": runs[run_2]["metrics"]["accuracy"],
+                    "winner": run_2,
+                    "difference": abs(runs[run_1]["metrics"]["accuracy"] - runs[run_2]["metrics"]["accuracy"]),
+                }
+            },
+            "overall_winner": run_2,
+        }
+
+    monkeypatch.setattr("ml_lab_agent.api.routes.experiments.return_all_runs", _return_all_runs)
+    monkeypatch.setattr("ml_lab_agent.api.routes.experiments.select_run", _select_run)
+    monkeypatch.setattr("ml_lab_agent.api.routes.experiments.compare_experiments", _compare_experiments)
+
+
+def test_list_runs_returns_200_and_lists(client, mock_experiments_dependencies):
     response = client.get("/experiments/runs")
 
     assert response.status_code == 200
@@ -24,7 +95,7 @@ def test_list_runs_returns_200_and_lists(client):
     assert "metrics" in first_run
 
 
-def test_get_run_returns_200_and_single_run(client):
+def test_get_run_returns_200_and_single_run(client, mock_experiments_dependencies):
     response = client.get("/experiments/runs/1")
 
     assert response.status_code == 200
@@ -35,7 +106,7 @@ def test_get_run_returns_200_and_single_run(client):
     assert "metrics" in body
 
 
-def test_get_run_returns_404(client):
+def test_get_run_returns_404(client, mock_experiments_dependencies):
     response = client.get("/experiments/runs/missing_run")
     assert response.status_code == 404
 
@@ -43,7 +114,7 @@ def test_get_run_returns_404(client):
     assert body["detail"] == "Run with id missing_run not found"
 
 
-def test_compare_experiments_returns_200_and_comparison(client):
+def test_compare_experiments_returns_200_and_comparison(client, mock_experiments_dependencies):
     response = client.post("/experiments/compare", json={"run_ids": ["1", "2"]})
 
     assert response.status_code == 200
@@ -54,7 +125,7 @@ def test_compare_experiments_returns_200_and_comparison(client):
     assert "overall_winner" in body
 
 
-def test_compare_experiments_returns_400_missing_run(client):
+def test_compare_experiments_returns_400_missing_run(client, mock_experiments_dependencies):
     response = client.post(
         "/experiments/compare",
         json={"run_ids": ["1", "missing_run"]},
@@ -66,7 +137,7 @@ def test_compare_experiments_returns_400_missing_run(client):
     assert body["detail"] == "No such run id: missing_run."
 
 
-def test_compare_experiments_returns_400_for_more_than_two_runs(client):
+def test_compare_experiments_returns_400_for_more_than_two_runs(client, mock_experiments_dependencies):
     response = client.post(
         "/experiments/compare",
         json={"run_ids": ["1", "2", "3"]},
@@ -78,7 +149,7 @@ def test_compare_experiments_returns_400_for_more_than_two_runs(client):
     assert body["detail"] == "Can only accept two unique runs to compare."
 
 
-def test_compare_experiments_returns_400_for_duplicate_runs(client):
+def test_compare_experiments_returns_400_for_duplicate_runs(client, mock_experiments_dependencies):
     response = client.post(
         "/experiments/compare",
         json={"run_ids": ["1", "1"]},

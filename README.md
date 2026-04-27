@@ -65,6 +65,46 @@ source .venv/bin/activate
 python -m uvicorn --app-dir src ml_lab_agent.main:app --host 127.0.0.1 --port 8000 --env-file .env --reload
 ```
 
+## MLflow Demo Runs
+
+Use two terminals.
+
+1. Start MLflow tracking server on port 8080:
+
+```bash
+source .venv/bin/activate
+mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 127.0.0.1 --port 8080
+```
+
+2. In another terminal, create demo runs in experiment `MLLabAgent Demo Runs`:
+
+```bash
+source .venv/bin/activate
+uv run python src/scripts/create_demo_runs.py --tracking-uri http://127.0.0.1:8080 --experiment-name "MLLabAgent Demo Runs"
+```
+
+3. Open UI:
+
+```text
+http://127.0.0.1:8080
+```
+
+4. Optional quick verification from terminal:
+
+```bash
+source .venv/bin/activate
+python - <<'PY'
+import mlflow
+from mlflow.tracking import MlflowClient
+
+mlflow.set_tracking_uri("http://127.0.0.1:8080")
+client = MlflowClient()
+for exp in client.search_experiments():
+	runs = client.search_runs([exp.experiment_id])
+	print(exp.experiment_id, exp.name, "runs:", len(runs))
+PY
+```
+
 ## Stop Running App
 
 - If running in foreground terminal: press Ctrl+C.

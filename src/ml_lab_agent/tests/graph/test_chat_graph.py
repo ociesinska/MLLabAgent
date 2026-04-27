@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -17,6 +17,57 @@ def base_graph_state():
     }
 
 
+@pytest.fixture
+def mock_resolve_run_identifiers(monkeypatch):
+    mock = Mock(side_effect=lambda ids: ids)
+    monkeypatch.setattr(
+        "ml_lab_agent.api.agents.chat_graph.nodes.resolve_run_identifiers",
+        mock,
+    )
+    return mock
+
+
+@pytest.fixture
+def mock_select_run_success(monkeypatch):
+    fake_run = {
+        "run_id": "1",
+        "experiment_name": "Experiment",
+        "metrics": {
+            "accuracy": 0.81,
+            "f1_score": 0.78,
+        },
+        "params": {
+            "model_type": "logistic_regression",
+        },
+        "tags": {
+            "mlflow.user": "ac",
+        },
+    }
+    mock = Mock(return_value=fake_run)
+    monkeypatch.setattr(
+        "ml_lab_agent.api.agents.chat_graph.nodes.select_run",
+        mock,
+    )
+    return mock
+
+
+@pytest.fixture
+def mock_compare_experiments_success(monkeypatch):
+    fake_compare = {
+        "overall_winner": "2",
+        "metrics_comparison": {
+            "accuracy": {"1": 0.81, "2": 0.85, "winner": "2"},
+            "f1_score": {"1": 0.78, "2": 0.82, "winner": "2"},
+        },
+    }
+    mock = Mock(return_value=fake_compare)
+    monkeypatch.setattr(
+        "ml_lab_agent.api.agents.chat_graph.nodes.compare_experiments",
+        mock,
+    )
+    return mock
+
+
 def test_graph_invoke_show_returns_all_runs_response(base_graph_state):
     state = {**base_graph_state, "message": "show"}
 
@@ -30,7 +81,11 @@ def test_graph_invoke_show_returns_all_runs_response(base_graph_state):
     assert len(response.data) > 0
 
 
-def test_graph_invoke_show_single_run_returns_run_details(base_graph_state):
+def test_graph_invoke_show_single_run_returns_run_details(
+    base_graph_state,
+    mock_resolve_run_identifiers,
+    mock_select_run_success,
+):
     state = {**base_graph_state, "message": "show run 1"}
 
     result = graph.invoke(state)
@@ -43,7 +98,11 @@ def test_graph_invoke_show_single_run_returns_run_details(base_graph_state):
     assert response.data["run_id"] == "1"
 
 
-def test_graph_invoke_compare_returns_compare_response(base_graph_state):
+def test_graph_invoke_compare_returns_compare_response(
+    base_graph_state,
+    mock_resolve_run_identifiers,
+    mock_compare_experiments_success,
+):
     state = {**base_graph_state, "message": "compare run 1 and run 2"}
 
     result = graph.invoke(state)
@@ -56,7 +115,10 @@ def test_graph_invoke_compare_returns_compare_response(base_graph_state):
     assert response.data["overall_winner"] == "2"
 
 
-def test_graph_invoke_compare_with_single_run_returns_validation_error(base_graph_state):
+def test_graph_invoke_compare_with_single_run_returns_validation_error(
+    base_graph_state,
+    mock_resolve_run_identifiers,
+):
     state = {**base_graph_state, "message": "compare run 1"}
 
     result = graph.invoke(state)
@@ -68,7 +130,11 @@ def test_graph_invoke_compare_with_single_run_returns_validation_error(base_grap
     assert response.error == "Need at least two unique runs to compare."
 
 
-def test_graph_invoke_summarize_compare_returns_summary_response(base_graph_state):
+def test_graph_invoke_summarize_compare_returns_summary_response(
+    base_graph_state,
+    mock_resolve_run_identifiers,
+    mock_compare_experiments_success,
+):
     fake_summary = {
         "summary": "Run 2 performed better overall.",
         "metric_insights": [
@@ -100,7 +166,11 @@ def test_graph_invoke_summarize_compare_returns_summary_response(base_graph_stat
     assert response.data["summary"]["summary"] == "Run 2 performed better overall."
 
 
-def test_graph_invoke_summarize_compare_uses_fallback_when_llm_fails(base_graph_state):
+def test_graph_invoke_summarize_compare_uses_fallback_when_llm_fails(
+    base_graph_state,
+    mock_resolve_run_identifiers,
+    mock_compare_experiments_success,
+):
     state = {**base_graph_state, "message": "summarize compare run 1 and run 2"}
 
     with patch(

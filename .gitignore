@@ -20,4 +20,8 @@ htmlcov/
 .idea/
 .DS_Store
 
+mlruns/
+mlflow.db
+artifacts/
+
 ml_lab_agent.egg-info

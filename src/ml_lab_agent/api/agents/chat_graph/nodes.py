@@ -1,15 +1,49 @@
 from ml_lab_agent.api.agents.chat_graph.state import State
 from ml_lab_agent.schemas.chat_schemas import ChatResponse
-from ml_lab_agent.services.chat_service import detect_intent, extract_run_ids
-from ml_lab_agent.services.exp_services import compare_experiments, return_all_runs, select_run
+from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
+from ml_lab_agent.services.chat_service import detect_intent, extract_run_identifiers
+from ml_lab_agent.services.exp_services import compare_experiments, resolve_run_identifiers, return_all_runs, select_run
 from ml_lab_agent.services.llm_service import generate_compare_summary
 
 
 def parse_input_node(state: State):
     intent = detect_intent(state["message"])
-    run_ids = extract_run_ids(state["message"])
+    raw_run_ids = extract_run_identifiers(state["message"])
 
-    return {"intent": intent, "run_ids": run_ids}
+    try:
+        resolved_run_ids = resolve_run_identifiers(raw_run_ids) if raw_run_ids else []
+
+        return {"intent": intent, "run_ids": resolved_run_ids}
+
+    except AmbiguousRunIdentifier as e:
+        return {
+            "final_response": ChatResponse(
+                intent=intent or "unknown",
+                message=f"Run name '{e.run_identifier}' is ambiguous. Please choose one of the matching runs.",
+                data={
+                    "matches": [
+                        {
+                            "run_id": run["run_id"],
+                            "run_name": run["tags"].get("mlflow.runName") or run["params"].get("run_name"),
+                        }
+                        for run in e.matches
+                    ]
+                },
+                error="Ambiguous run identifier.",
+            )
+        }
+
+    except ValueError as e:
+        return {
+            "intent": "unknown",
+            "run_ids": [],
+            "final_response": ChatResponse(
+                intent=intent or "unknown",
+                message="Cannot process this request.",
+                data=None,
+                error=str(e),
+            ),
+        }
 
 
 def show_node(state: State):
@@ -193,6 +227,9 @@ def fallback_summary_node(state: State):
 
 
 def unknown_node(state: State):
+    if state.get("final_response") is not None:
+        return {"final_response": state["final_response"]}
+
     return {
         "final_response": ChatResponse(
             intent="unknown",

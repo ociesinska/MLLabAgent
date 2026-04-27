@@ -29,3 +29,10 @@ class CompareResponse(BaseModel):
 class CompareSummaryResponse(BaseModel):
     compare_results: CompareResponse
     generated_summary: CompareSummaryOutput
+
+
+class AmbiguousRunIdentifier(ValueError):
+    def __init__(self, run_identifier: str, matches: list[dict]):
+        self.run_identifier = run_identifier
+        self.matches = matches
+        super().__init__(f"Run name '{run_identifier}' is ambiguous.")
