@@ -20,9 +20,16 @@ class MetricsComparison(BaseModel):
     difference: float
 
 
+class ParamsComparison(BaseModel):
+    value_run_1: str | int | float | bool | None
+    value_run_2: str | int | float | bool | None
+    changed: bool
+
+
 class CompareResponse(BaseModel):
     compared_run_ids: list[str]
     metrics_comparison: dict[str, MetricsComparison]
+    parameter_comparison: dict[str, ParamsComparison]
     overall_winner: str | None
 
 

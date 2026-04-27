@@ -25,10 +25,16 @@ def _get_client() -> genai.Client:
 
 def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
     client = _get_client()
+    serialized_compare_result = json.dumps(compare_result, indent=2, ensure_ascii=False)
     prompt = f"""
     You are an ML experimentation assistant.
 
     Your task is to analyze the experiment comparison result and return a concise structured response.
+    Use both metrics_comparison and parameter_comparison.
+    Treat parameter_comparison as first-class evidence, not optional context.
+    When suggesting next experiments:
+    - explicitly reference changed parameters when they may explain performance differences,
+    - and suggest focused follow-up parameter adjustments.
 
     Return ONLY valid JSON.
     Do not use markdown.
@@ -45,6 +51,7 @@ def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
     Rules:
     - "summary" must be 2-3 sentences.
     - "metric_insights" must contain one short bullet-style insight per compared metric.
+    - Mention parameter changes in "metric_insights" whenever they plausibly relate to metric deltas.
     - "next_experiment_ideas" must contain exactly 2 concrete next steps for a classification project.
     - Each experiment idea must be specific, realistic, and explain why it may help.
     - If the comparison result is limited, still provide 2 reasonable generic next experiment ideas.
@@ -52,7 +59,7 @@ def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
     - Use the provided comparison result only. Do not invent nonexistent metrics.
 
     Experiment comparison result:
-    {compare_result}
+    {serialized_compare_result}
     """
     try:
         response = client.models.generate_content(

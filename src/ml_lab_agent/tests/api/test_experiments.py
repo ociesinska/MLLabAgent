@@ -72,6 +72,13 @@ def mock_experiments_dependencies(monkeypatch):
                     "difference": abs(runs[run_1]["metrics"]["accuracy"] - runs[run_2]["metrics"]["accuracy"]),
                 }
             },
+            "parameter_comparison": {
+                "batch_size": {
+                    "value_run_1": "32",
+                    "value_run_2": "32",
+                    "changed": False,
+                }
+            },
             "overall_winner": run_2,
         }
 

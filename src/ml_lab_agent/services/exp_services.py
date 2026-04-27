@@ -72,24 +72,35 @@ def compare_experiments(run_ids: list[str]):
     results["compared_run_ids"] = unique_run_ids
 
     metrics_by_run = {}
+    params_by_run = {}
+
     for run_id in unique_run_ids:
         run = select_run(run_id)
         if run is None:
             raise ValueError(f"No such run id: {run_id}.")
         metrics_by_run[run_id] = run["metrics"]
+        params_by_run[run_id] = run.get("params", {})
 
     run_1_id, run_2_id = unique_run_ids
+
     metrics_1 = metrics_by_run[run_1_id]
+    params_1 = params_by_run[run_1_id]
+
     metrics_2 = metrics_by_run[run_2_id]
+    params_2 = params_by_run[run_2_id]
 
     common_metrics = set(metrics_1.keys()) & set(metrics_2.keys())
+    common_params = set(params_1.keys()) & set(params_2.keys())
+
     if len(common_metrics) == 0:
         raise ValueError("No common metrics to compare.")
 
     metrics_comparison = {}
+    parameter_comparison = {}
     win_count = {run_1_id: 0, run_2_id: 0}
 
     for metric_name in common_metrics:
+
         value_1 = metrics_1[metric_name]
         value_2 = metrics_2[metric_name]
 
@@ -110,6 +121,7 @@ def compare_experiments(run_ids: list[str]):
         }
 
     results["metrics_comparison"] = metrics_comparison
+
     if win_count[run_1_id] > win_count[run_2_id]:
         results["overall_winner"] = run_1_id
     elif win_count[run_2_id] > win_count[run_1_id]:
@@ -117,4 +129,18 @@ def compare_experiments(run_ids: list[str]):
     else:
         results["overall_winner"] = None
 
+
+    for param in common_params:
+        val_1 = params_1[param]
+        val_2 = params_2[param]
+
+
+        parameter_comparison[param] = {
+                "value_run_1": val_1,
+                "value_run_2": val_2,
+                "changed": params_1[param] != params_2[param]
+            }
+
+    results["parameter_comparison"] = parameter_comparison
+        
     return results

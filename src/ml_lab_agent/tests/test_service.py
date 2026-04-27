@@ -34,12 +34,20 @@ def mock_select_run_for_compare(monkeypatch):
                 "accuracy": 0.81,
                 "f1_score": 0.78,
             },
+            "params": {
+                "model_type": "logistic_regression",
+                "batch_size": "32",
+            },
         },
         "2": {
             "run_id": "2",
             "metrics": {
                 "accuracy": 0.85,
                 "f1_score": 0.82,
+            },
+            "params": {
+                "model_type": "simple_cnn",
+                "batch_size": "32",
             },
         },
     }
