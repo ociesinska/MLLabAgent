@@ -8,6 +8,7 @@ from ml_lab_agent.api.agents.chat_graph.nodes import (
     parse_input_node,
     route_after_summary,
     route_after_validate,
+    show_best_run_node,
     show_node,
     unknown_node,
     validate_compare_node,
@@ -91,6 +92,30 @@ def mock_return_all_runs(monkeypatch):
 
 
 @pytest.fixture
+def mock_show_best_run_by_metric(monkeypatch):
+    fake_run = {
+        "run_id": "2",
+        "metrics": {"accuracy": 0.92},
+    }
+    mock = Mock(return_value=fake_run)
+    monkeypatch.setattr(
+        "ml_lab_agent.api.agents.chat_graph.nodes.show_best_run_by_metric",
+        mock,
+    )
+    return mock
+
+
+@pytest.fixture
+def mock_show_best_run_by_metric_error(monkeypatch):
+    mock = Mock(side_effect=ValueError("Metric 'accuracy' not found in any run."))
+    monkeypatch.setattr(
+        "ml_lab_agent.api.agents.chat_graph.nodes.show_best_run_by_metric",
+        mock,
+    )
+    return mock
+
+
+@pytest.fixture
 def mock_resolve_run_identifiers(monkeypatch):
     mock = Mock(side_effect=lambda ids: ids)
     monkeypatch.setattr(
@@ -125,6 +150,16 @@ def test_parse_input_node_extracts_summarize_intent_and_two_run_ids(mock_resolve
     assert result["intent"] == "summarize_compare"
     assert result["run_ids"] == ["1", "2"]
     mock_resolve_run_identifiers.assert_called_once_with(["1", "2"])
+
+
+def test_parse_input_node_extracts_show_best_run_intent_and_metric(mock_resolve_run_identifiers):
+    state = {"message": "show best run by accuracy"}
+    result = parse_input_node(state)
+
+    assert result["intent"] == "show_best_run"
+    assert result["metric"] == "accuracy"
+    assert result["run_ids"] == []
+    mock_resolve_run_identifiers.assert_not_called()
 
 
 def test_parse_input_node_returns_unknown_intent_for_unsupported_message():
@@ -345,3 +380,39 @@ def test_unknown_node_returns_unknown_chat_response(base_state):
     assert response.intent == "unknown"
     assert response.data is None
     assert response.error == "Unsupported request."
+
+
+def test_show_best_run_node_returns_error_when_metric_missing(base_state):
+    state = {**base_state, "metric": None}
+
+    result = show_best_run_node(state)
+    response = result["final_response"]
+
+    assert response.intent == "show_best_run"
+    assert response.data is None
+    assert response.error == "Please specify a metric, for example: show best run by accuracy."
+
+
+def test_show_best_run_node_returns_best_run_data(base_state, mock_show_best_run_by_metric):
+    state = {**base_state, "metric": "accuracy"}
+
+    result = show_best_run_node(state)
+    response = result["final_response"]
+
+    assert response.intent == "show_best_run"
+    assert response.error is None
+    assert response.message == "Best run by accuracy found."
+    assert response.data["run_id"] == "2"
+    mock_show_best_run_by_metric.assert_called_once_with("accuracy")
+
+
+def test_show_best_run_node_returns_error_when_service_fails(base_state, mock_show_best_run_by_metric_error):
+    state = {**base_state, "metric": "accuracy"}
+
+    result = show_best_run_node(state)
+    response = result["final_response"]
+
+    assert response.intent == "show_best_run"
+    assert response.data is None
+    assert response.error == "Metric 'accuracy' not found in any run."
+    mock_show_best_run_by_metric_error.assert_called_once_with("accuracy")

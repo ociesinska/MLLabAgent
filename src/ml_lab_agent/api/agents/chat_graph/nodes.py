@@ -1,19 +1,20 @@
 from ml_lab_agent.api.agents.chat_graph.state import State
 from ml_lab_agent.schemas.chat_schemas import ChatResponse
 from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
-from ml_lab_agent.services.chat_service import detect_intent, extract_run_identifiers
-from ml_lab_agent.services.exp_services import compare_experiments, resolve_run_identifiers, return_all_runs, select_run
+from ml_lab_agent.services.chat_service import detect_intent, extract_metric_from_message, extract_run_identifiers
+from ml_lab_agent.services.exp_services import compare_experiments, resolve_run_identifiers, return_all_runs, select_run, show_best_run_by_metric
 from ml_lab_agent.services.llm_service import generate_compare_summary
 
 
 def parse_input_node(state: State):
     intent = detect_intent(state["message"])
     raw_run_ids = extract_run_identifiers(state["message"])
+    metric = extract_metric_from_message(state["message"])
 
     try:
         resolved_run_ids = resolve_run_identifiers(raw_run_ids) if raw_run_ids else []
 
-        return {"intent": intent, "run_ids": resolved_run_ids}
+        return {"intent": intent, "run_ids": resolved_run_ids, "metric": metric}
 
     except AmbiguousRunIdentifier as e:
         return {
@@ -240,13 +241,50 @@ def unknown_node(state: State):
     }
 
 
+def show_best_run_node(state: State):
+    metric = state.get("metric")
+
+    if metric is None:
+        return {
+            "final_response": ChatResponse(
+                intent="show_best_run",
+                message="Cannot process this request.",
+                data=None,
+                error="Please specify a metric, for example: show best run by accuracy.",
+            )
+        }
+
+    try:
+        result = show_best_run_by_metric(metric)
+        return {
+            "final_response": ChatResponse(
+                intent="show_best_run",
+                message=f"Best run by {metric} found.",
+                data=result,
+                error=None,
+            )
+        }
+
+    except ValueError as e:
+        return {
+            "final_response": ChatResponse(
+                intent="show_best_run",
+                message="Cannot process this request.",
+                data=None,
+                error=str(e),
+            )
+        }
+
+
 def route_by_intent(state: State):
     intent = state.get("intent", "unknown")
     if intent == "show":
         return "show_node"
     if intent == "compare":
         return "compare_path"
-    elif intent == "summarize_compare":
+    if intent == "summarize_compare":
         return "summarize_path"
+    if intent == "show_best_run":
+        return "show_best_run_node"
 
     return "unknown_node"

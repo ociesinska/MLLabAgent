@@ -100,7 +100,6 @@ def compare_experiments(run_ids: list[str]):
     win_count = {run_1_id: 0, run_2_id: 0}
 
     for metric_name in common_metrics:
-
         value_1 = metrics_1[metric_name]
         value_2 = metrics_2[metric_name]
 
@@ -129,18 +128,30 @@ def compare_experiments(run_ids: list[str]):
     else:
         results["overall_winner"] = None
 
-
     for param in common_params:
         val_1 = params_1[param]
         val_2 = params_2[param]
 
-
-        parameter_comparison[param] = {
-                "value_run_1": val_1,
-                "value_run_2": val_2,
-                "changed": params_1[param] != params_2[param]
-            }
+        parameter_comparison[param] = {"value_run_1": val_1, "value_run_2": val_2, "changed": params_1[param] != params_2[param]}
 
     results["parameter_comparison"] = parameter_comparison
-        
+
     return results
+
+
+def show_best_run_by_metric(metric: str):
+    runs = return_all_runs()
+
+    runs_with_metric = [run for run in runs if metric in run["metrics"]]
+
+    if not runs_with_metric:
+        raise ValueError(f"No runs with metric: {metric}.")
+
+    best_run = max(runs_with_metric, key=lambda run: run["metrics"][metric])
+
+    return {
+        "metric": metric,
+        "best_run": best_run,
+        "best_value": best_run["metrics"][metric],
+        "num_runs_checked": len(runs_with_metric),
+    }
