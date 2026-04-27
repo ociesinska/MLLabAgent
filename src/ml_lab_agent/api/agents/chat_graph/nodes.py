@@ -1,25 +1,41 @@
 from ml_lab_agent.api.agents.chat_graph.state import State
 from ml_lab_agent.schemas.chat_schemas import ChatResponse
 from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
-from ml_lab_agent.services.chat_service import detect_intent, extract_metric_from_message, extract_run_identifiers
 from ml_lab_agent.services.exp_services import compare_experiments, resolve_run_identifiers, return_all_runs, select_run, show_best_run_by_metric
 from ml_lab_agent.services.llm_service import generate_compare_summary
+from ml_lab_agent.services.request_parser_service import parse_request
 
 
 def parse_input_node(state: State):
-    intent = detect_intent(state["message"])
-    raw_run_ids = extract_run_identifiers(state["message"])
-    metric = extract_metric_from_message(state["message"])
+    request_parsed = None
 
     try:
+        request_parsed = parse_request(state["message"])
+        raw_run_ids = request_parsed.run_identifiers
+
+        if request_parsed.intent == "show_best_run":
+            return {
+                "intent": request_parsed.intent,
+                "run_ids": [],
+                "metric": request_parsed.metric,
+            }
+
         resolved_run_ids = resolve_run_identifiers(raw_run_ids) if raw_run_ids else []
 
-        return {"intent": intent, "run_ids": resolved_run_ids, "metric": metric}
+        return {
+            "intent": request_parsed.intent,
+            "run_ids": resolved_run_ids,
+            "metric": request_parsed.metric,
+        }
 
     except AmbiguousRunIdentifier as e:
+        intent = request_parsed.intent if request_parsed is not None else "unknown"
+
         return {
+            "intent": intent,
+            "run_ids": [],
             "final_response": ChatResponse(
-                intent=intent or "unknown",
+                intent=intent,
                 message=f"Run name '{e.run_identifier}' is ambiguous. Please choose one of the matching runs.",
                 data={
                     "matches": [
@@ -31,18 +47,32 @@ def parse_input_node(state: State):
                     ]
                 },
                 error="Ambiguous run identifier.",
-            )
+            ),
         }
 
     except ValueError as e:
+        intent = request_parsed.intent if request_parsed is not None else "unknown"
+
+        return {
+            "intent": intent,
+            "run_ids": [],
+            "final_response": ChatResponse(
+                intent=intent,
+                message="Cannot process this request.",
+                data=None,
+                error=str(e),
+            ),
+        }
+
+    except Exception as e:
         return {
             "intent": "unknown",
             "run_ids": [],
             "final_response": ChatResponse(
-                intent=intent or "unknown",
+                intent="unknown",
                 message="Cannot process this request.",
                 data=None,
-                error=str(e),
+                error=f"Could not parse user request: {str(e)}",
             ),
         }
 
@@ -277,7 +307,11 @@ def show_best_run_node(state: State):
 
 
 def route_by_intent(state: State):
+    if state.get("final_response") is not None:
+        return "unknown_node"
+
     intent = state.get("intent", "unknown")
+
     if intent == "show":
         return "show_node"
     if intent == "compare":

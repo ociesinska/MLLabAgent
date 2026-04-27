@@ -1,0 +1,78 @@
+import json
+from json import JSONDecodeError
+
+from pydantic import ValidationError
+
+from ml_lab_agent.schemas.chat_schemas import ParsedUserRequest
+from ml_lab_agent.services.llm_service import LLMProviderError, LLMResponseFormatError, _get_client
+
+
+def parse_request(message: str) -> ParsedUserRequest:
+    client = _get_client()
+    serialized_message = json.dumps(message)
+    prompt = (
+        """
+    You are an ML experiment assistant request parser.
+
+    Parse the user message into a structured JSON object.
+
+    Return ONLY valid JSON.
+    Do not use markdown.
+    Do not wrap the response in triple backticks.
+
+
+    Allowed intents:
+    - show
+    - compare
+    - summarize_compare
+    - show_best_run
+    - unknown
+
+    Rules:
+    - Use "show" when the user wants details about one or more runs.
+    - Use "compare" when the user wants to compare runs.
+    - Use "summarize_compare" when the user wants an analysis/summary of compared runs.
+    - Use "show_best_run" when the user asks for the best run by a metric.
+    - Use "unknown" if the request is not related to experiment runs.
+
+    Return exactly this structure:
+    {
+    "intent": "show | compare | summarize_compare | show_best_run | unknown",
+    "run_identifiers": ["string"],
+    "metric": "string or null"
+    }
+    
+    Never invent run identifiers.
+    Only include run_identifiers that are explicitly present in the user message.
+    If the user asks for the best run by a metric, use intent "show_best_run", set metric to the metric name, and set run_identifiers to [].
+
+    Examples:
+    User: show run baseline_lr
+    Output: {"intent": "show", "run_identifiers": ["baseline_lr"], "metric": null}
+
+    User: compare baseline_lr and tuned_cnn
+    Output: {"intent": "compare", "run_identifiers": ["baseline_lr", "tuned_cnn"], "metric": null}
+
+    User: summarize comparison of baseline_lr and tuned_cnn
+    Output: {"intent": "summarize_compare", "run_identifiers": ["baseline_lr", "tuned_cnn"], "metric": null}
+
+    User: show best run by accuracy
+    Output: {"intent": "show_best_run", "run_identifiers": [], "metric": "accuracy"}
+
+    User: show me best run by accuracy
+    Output: {"intent": "show_best_run", "run_identifiers": [], "metric": "accuracy"}
+
+    User message:
+    """
+        + serialized_message
+    )
+    try:
+        response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
+    except Exception as e:
+        raise LLMProviderError("LLM provider unavailable.") from e
+
+    try:
+        parsed = json.loads(response.text)
+        return ParsedUserRequest.model_validate(parsed)
+    except (JSONDecodeError, ValidationError) as e:
+        raise LLMResponseFormatError("Invalid LLM response format.") from e
