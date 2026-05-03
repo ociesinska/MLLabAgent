@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -13,6 +13,7 @@ from ml_lab_agent.api.agents.chat_graph.nodes import (
     unknown_node,
     validate_compare_node,
 )
+from ml_lab_agent.schemas.chat_schemas import ParsedUserRequest
 
 
 @pytest.fixture
@@ -20,6 +21,7 @@ def base_state():
     return {
         "message": "",
         "intent": None,
+        "metric": None,
         "run_ids": [],
         "compare_results": None,
         "llm_error": None,
@@ -127,7 +129,10 @@ def mock_resolve_run_identifiers(monkeypatch):
 
 def test_parse_input_node_extracts_show_intent_and_run_ids(mock_resolve_run_identifiers):
     state = {"message": "show run 1"}
-    result = parse_input_node(state)
+
+    fake_parsed_request = ParsedUserRequest(intent="show", run_identifiers=["1"], metric=None)
+    with patch("ml_lab_agent.api.agents.chat_graph.nodes.parse_request", return_value=fake_parsed_request):
+        result = parse_input_node(state)
 
     assert result["intent"] == "show"
     assert result["run_ids"] == ["1"]
@@ -136,7 +141,10 @@ def test_parse_input_node_extracts_show_intent_and_run_ids(mock_resolve_run_iden
 
 def test_parse_input_node_extracts_compare_intent_and_run_ids(mock_resolve_run_identifiers):
     state = {"message": "compare run 1 and run 2"}
-    result = parse_input_node(state)
+
+    fake_parsed_request = ParsedUserRequest(intent="compare", run_identifiers=["1", "2"], metric=None)
+    with patch("ml_lab_agent.api.agents.chat_graph.nodes.parse_request", return_value=fake_parsed_request):
+        result = parse_input_node(state)
 
     assert result["intent"] == "compare"
     assert result["run_ids"] == ["1", "2"]
@@ -145,7 +153,11 @@ def test_parse_input_node_extracts_compare_intent_and_run_ids(mock_resolve_run_i
 
 def test_parse_input_node_extracts_summarize_intent_and_two_run_ids(mock_resolve_run_identifiers):
     state = {"message": "compare and summarize run 1 and run 2"}
-    result = parse_input_node(state)
+
+    fake_parsed_request = ParsedUserRequest(intent="summarize_compare", run_identifiers=["1", "2"], metric=None)
+
+    with patch("ml_lab_agent.api.agents.chat_graph.nodes.parse_request", return_value=fake_parsed_request):
+        result = parse_input_node(state)
 
     assert result["intent"] == "summarize_compare"
     assert result["run_ids"] == ["1", "2"]
@@ -154,7 +166,11 @@ def test_parse_input_node_extracts_summarize_intent_and_two_run_ids(mock_resolve
 
 def test_parse_input_node_extracts_show_best_run_intent_and_metric(mock_resolve_run_identifiers):
     state = {"message": "show best run by accuracy"}
-    result = parse_input_node(state)
+
+    fake_parsed_request = ParsedUserRequest(intent="show_best_run", run_identifiers=[], metric="accuracy")
+
+    with patch("ml_lab_agent.api.agents.chat_graph.nodes.parse_request", return_value=fake_parsed_request):
+        result = parse_input_node(state)
 
     assert result["intent"] == "show_best_run"
     assert result["metric"] == "accuracy"

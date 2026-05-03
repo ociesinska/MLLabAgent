@@ -8,7 +8,6 @@ from ml_lab_agent.services.llm_service import LLMProviderError, LLMResponseForma
 
 
 def parse_request(message: str) -> ParsedUserRequest:
-    client = _get_client()
     serialized_message = json.dumps(message)
     prompt = (
         """
@@ -67,6 +66,7 @@ def parse_request(message: str) -> ParsedUserRequest:
         + serialized_message
     )
     try:
+        client = _get_client()
         response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
     except Exception as e:
         raise LLMProviderError("LLM provider unavailable.") from e

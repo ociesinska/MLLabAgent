@@ -25,3 +25,4 @@ mlflow.db
 artifacts/
 
 ml_lab_agent.egg-info
+.envrc

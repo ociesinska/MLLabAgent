@@ -139,6 +139,16 @@ def compare_experiments(run_ids: list[str]):
     return results
 
 
+METRIC_DIRECTIONS = {
+    "accuracy": "max",
+    "f1_score": "max",
+    "precision": "max",
+    "recall": "max",
+    "loss": "min",
+    "val_loss": "min",
+}
+
+
 def show_best_run_by_metric(metric: str):
     runs = return_all_runs()
 
@@ -147,7 +157,12 @@ def show_best_run_by_metric(metric: str):
     if not runs_with_metric:
         raise ValueError(f"No runs with metric: {metric}.")
 
-    best_run = max(runs_with_metric, key=lambda run: run["metrics"][metric])
+    direction = METRIC_DIRECTIONS.get(metric, "max")
+
+    if direction == "min":
+        best_run = min(runs_with_metric, key=lambda run: run["metrics"][metric])
+    else:
+        best_run = max(runs_with_metric, key=lambda run: run["metrics"][metric])
 
     return {
         "metric": metric,

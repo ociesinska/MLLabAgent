@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ml_lab_agent.main import app
+from ml_lab_agent.schemas.chat_schemas import ParsedUserRequest
 
 
 @pytest.fixture
@@ -78,10 +79,31 @@ def mock_chat_dependencies(monkeypatch):
             "overall_winner": run_2,
         }
 
+    def _parse_request(message: str) -> ParsedUserRequest:
+        text = message.lower().strip()
+
+        if text == "show":
+            return ParsedUserRequest(intent="show", run_identifiers=[], metric=None)
+
+        if text == "show run 1":
+            return ParsedUserRequest(intent="show", run_identifiers=["1"], metric=None)
+
+        if text == "compare run 1 and run 2":
+            return ParsedUserRequest(intent="compare", run_identifiers=["1", "2"], metric=None)
+
+        if text == "compare run 1, run 2 and run 3":
+            return ParsedUserRequest(intent="compare", run_identifiers=["1", "2", "3"], metric=None)
+
+        if text in ("show best run by accuracy", "show me best run by accuracy"):
+            return ParsedUserRequest(intent="show_best_run", run_identifiers=[], metric="accuracy")
+
+        return ParsedUserRequest(intent="unknown", run_identifiers=[], metric=None)
+
     monkeypatch.setattr("ml_lab_agent.api.agents.chat_graph.nodes.return_all_runs", _return_all_runs)
     monkeypatch.setattr("ml_lab_agent.api.agents.chat_graph.nodes.select_run", _select_run)
     monkeypatch.setattr("ml_lab_agent.api.agents.chat_graph.nodes.resolve_run_identifiers", _resolve_run_identifiers)
     monkeypatch.setattr("ml_lab_agent.api.agents.chat_graph.nodes.compare_experiments", _compare_experiments)
+    monkeypatch.setattr("ml_lab_agent.api.agents.chat_graph.nodes.parse_request", _parse_request)
 
 
 def test_chat_response_show_all(client, mock_chat_dependencies):
