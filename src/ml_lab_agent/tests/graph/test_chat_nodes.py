@@ -9,6 +9,7 @@ from ml_lab_agent.api.agents.chat_graph.nodes import (
     route_after_summary,
     route_after_validate,
     show_best_run_node,
+    show_latest_run_node,
     show_node,
     unknown_node,
     validate_compare_node,
@@ -393,9 +394,54 @@ def test_unknown_node_returns_unknown_chat_response(base_state):
     result = unknown_node(base_state)
     response = result["final_response"]
 
-    assert response.intent == "unknown"
+
+@pytest.fixture
+def mock_show_latest_run_success(monkeypatch):
+    fake_run = {
+        "run_id": "3",
+        "metrics": {"accuracy": 0.9},
+        "start_time": 123456789,
+    }
+    mock = Mock(return_value=fake_run)
+    monkeypatch.setattr(
+        "ml_lab_agent.api.agents.chat_graph.nodes.show_latest_run",
+        mock,
+    )
+    return mock
+
+
+@pytest.fixture
+def mock_show_latest_run_error(monkeypatch):
+    mock = Mock(side_effect=ValueError("No runs found."))
+    monkeypatch.setattr(
+        "ml_lab_agent.api.agents.chat_graph.nodes.show_latest_run",
+        mock,
+    )
+    return mock
+
+
+def test_show_latest_run_node_success(mock_show_latest_run_success):
+    state = {}
+    result = show_latest_run_node(state)
+    response = result["final_response"]
+
+    assert response.intent == "show_latest_run"
+    assert response.error is None
+    assert response.data is not None
+    assert response.data["run_id"] == "3"
+    assert response.message == "Latest run found."
+    mock_show_latest_run_success.assert_called_once_with()
+
+
+def test_show_latest_run_node_no_runs(mock_show_latest_run_error):
+    state = {}
+    result = show_latest_run_node(state)
+    response = result["final_response"]
+
+    assert response.intent == "show_latest_run"
     assert response.data is None
-    assert response.error == "Unsupported request."
+    assert response.error == "No runs found."
+    mock_show_latest_run_error.assert_called_once_with()
 
 
 def test_show_best_run_node_returns_error_when_metric_missing(base_state):

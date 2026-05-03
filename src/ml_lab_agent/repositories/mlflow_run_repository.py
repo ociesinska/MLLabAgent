@@ -37,11 +37,16 @@ class MlflowRunRepository:
 
     def _map_run(self, run) -> dict:
         return {
-            "run_id": run.info.run_id,
-            "experiment_name": self.experiment_name,
-            "metrics": dict(run.data.metrics),
-            "params": dict(run.data.params),
-            "tags": dict(run.data.tags),
+            'run_id': run.info.run_id,
+            'experiment_name': self.experiment_name,
+            "experiment_id": run.info.experiment_id,
+            "run_name": run.data.tags.get("mlflow.runName"),
+            'status': run.info.status,
+            'start_time': run.info.start_time,
+            'end_time': run.info.end_time,
+            'metrics': dict(run.data.metrics),
+            'params': dict(run.data.params),
+            'tags': dict(run.data.tags),
         }
 
     def _get_experiment_ids(self, experiment_name: str) -> list[str]:

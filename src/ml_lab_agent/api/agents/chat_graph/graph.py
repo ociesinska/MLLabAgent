@@ -9,6 +9,7 @@ from ml_lab_agent.api.agents.chat_graph.nodes import (
     route_after_validate,
     route_by_intent,
     show_best_run_node,
+    show_latest_run_node,
     show_node,
     summarize_compare_node,
     unknown_node,
@@ -21,6 +22,7 @@ graph_builder = StateGraph(State)
 graph_builder.add_node("parse_input_node", parse_input_node)
 graph_builder.add_node("show_node", show_node)
 graph_builder.add_node("show_best_run_node", show_best_run_node)
+graph_builder.add_node("show_latest_run_node", show_latest_run_node)
 graph_builder.add_node("compare_node", compare_node)
 graph_builder.add_node("compare_for_summary_node", compare_for_summary_node)
 graph_builder.add_node("summarize_compare_node", summarize_compare_node)
@@ -38,12 +40,14 @@ graph_builder.add_conditional_edges(
         "summarize_path": "validate_compare_node",
         "unknown_node": "unknown_node",
         "show_best_run_node": "show_best_run_node",
+        "show_latest_run_node": "show_latest_run_node"
     },
 )
 
 graph_builder.add_edge("show_node", END)
 graph_builder.add_edge("unknown_node", END)
 graph_builder.add_edge("show_best_run_node", END)
+graph_builder.add_edge("show_latest_run_node", END)
 
 graph_builder.add_conditional_edges(
     "validate_compare_node",

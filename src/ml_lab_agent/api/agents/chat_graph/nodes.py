@@ -1,7 +1,7 @@
 from ml_lab_agent.api.agents.chat_graph.state import State
 from ml_lab_agent.schemas.chat_schemas import ChatResponse
 from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
-from ml_lab_agent.services.exp_services import compare_experiments, resolve_run_identifiers, return_all_runs, select_run, show_best_run_by_metric
+from ml_lab_agent.services.exp_services import compare_experiments, resolve_run_identifiers, return_all_runs, select_run, show_best_run_by_metric, show_latest_run
 from ml_lab_agent.services.llm_service import generate_compare_summary
 from ml_lab_agent.services.request_parser_service import parse_request
 
@@ -305,6 +305,28 @@ def show_best_run_node(state: State):
             )
         }
 
+def show_latest_run_node(state: State):
+    try:
+        result = show_latest_run()
+        return {
+            "final_response": ChatResponse(
+                intent="show_latest_run",
+                message="Latest run found.",
+                data=result,
+                error=None,
+            )
+        }
+
+    except ValueError as e:
+        return {
+            "final_response": ChatResponse(
+                intent="show_latest_run",
+                message="Cannot process this request.",
+                data=None,
+                error=str(e),
+            )
+        }
+
 
 def route_by_intent(state: State):
     if state.get("final_response") is not None:
@@ -320,5 +342,7 @@ def route_by_intent(state: State):
         return "summarize_path"
     if intent == "show_best_run":
         return "show_best_run_node"
+    if intent == "show_latest_run":
+        return "show_latest_run_node"
 
     return "unknown_node"

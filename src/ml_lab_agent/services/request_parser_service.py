@@ -25,6 +25,7 @@ def parse_request(message: str) -> ParsedUserRequest:
     - compare
     - summarize_compare
     - show_best_run
+    - show latest run
     - unknown
 
     Rules:
@@ -32,6 +33,7 @@ def parse_request(message: str) -> ParsedUserRequest:
     - Use "compare" when the user wants to compare runs.
     - Use "summarize_compare" when the user wants an analysis/summary of compared runs.
     - Use "show_best_run" when the user asks for the best run by a metric.
+    - Use "show_latest_run" when the user asks for the latest, newest, most recent, or last run.
     - Use "unknown" if the request is not related to experiment runs.
 
     Return exactly this structure:
@@ -60,6 +62,9 @@ def parse_request(message: str) -> ParsedUserRequest:
 
     User: show me best run by accuracy
     Output: {"intent": "show_best_run", "run_identifiers": [], "metric": "accuracy"}
+
+    User: show latest run
+    Output: {"intent": "show_latest_run", "run_identifiers": [], "metric": null}
 
     User message:
     """
