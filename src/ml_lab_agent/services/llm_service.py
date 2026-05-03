@@ -70,7 +70,7 @@ def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-2.0-flash",
             contents=prompt,
         )
     except Exception as e:

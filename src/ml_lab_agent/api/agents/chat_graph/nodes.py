@@ -125,6 +125,16 @@ def show_node(state: State):
 def validate_compare_node(state: State):
     run_ids = state["run_ids"]
 
+    if len(run_ids) >= 2 and len(set(run_ids)) < 2:
+        return {
+            "final_response": ChatResponse(
+                intent=state["intent"],
+                message="Cannot process this request.",
+                data=None,
+                error="The selected references point to the same run, so there are not two unique runs to compare."
+                )
+        }
+
     if len(set(run_ids)) < 2:
         return {
             "final_response": ChatResponse(

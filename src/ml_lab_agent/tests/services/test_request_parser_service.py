@@ -68,3 +68,12 @@ def test_parse_request_raises_provider_error_when_llm_call_fails():
     with patch("ml_lab_agent.services.request_parser_service._get_client", return_value=mock_client):
         with pytest.raises(LLMProviderError, match="LLM provider unavailable"):
             parse_request("show me best run by f1_score")
+
+
+def test_parse_request_raises_quota_error_when_llm_quota_exhausted():
+    mock_client = Mock()
+    mock_client.models.generate_content.side_effect = Exception("429 RESOURCE_EXHAUSTED: quota exceeded")
+
+    with patch("ml_lab_agent.services.request_parser_service._get_client", return_value=mock_client):
+        with pytest.raises(LLMProviderError, match="Gemini API quota exceeded"):
+            parse_request("show latest run")

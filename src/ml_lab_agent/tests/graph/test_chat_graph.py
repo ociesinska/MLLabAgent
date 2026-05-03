@@ -221,3 +221,84 @@ def test_graph_invoke_show_best_run_by_metric(base_graph_state):
     assert response.intent == "show_best_run"
     assert response.error is None
     assert response.data["metric"] == "f1_score"
+
+
+def test_graph_invoke_compare_returns_compare_response_latest_and_best_by_metric(
+    base_graph_state,
+):
+    state = {**base_graph_state, "message": "compare run 1 and run 2"}
+
+    fake_parsed_request = ParsedUserRequest(intent="compare", run_identifiers=["latest", "best_by:accuracy"], metric=None)
+    fake_compare = {
+        "overall_winner": "run_latest",
+        "metrics_comparison": {
+            "accuracy": {"run_latest": 0.91, "run_best_accuracy": 0.89, "winner": "run_latest"},
+            "f1_score": {"run_latest": 0.88, "run_best_accuracy": 0.87, "winner": "run_latest"},
+        },
+    }
+
+    with patch("ml_lab_agent.api.agents.chat_graph.nodes.parse_request", return_value=fake_parsed_request):
+        with patch(
+            "ml_lab_agent.api.agents.chat_graph.nodes.resolve_run_identifiers",
+            return_value=["run_latest", "run_best_accuracy"],
+        ):
+            with patch(
+                "ml_lab_agent.api.agents.chat_graph.nodes.compare_experiments",
+                return_value=fake_compare,
+            ):
+                result = graph.invoke(state)
+
+    response = result["final_response"]
+
+    assert response.intent == "compare"
+    assert response.error is None
+    assert response.message == "Comparison generated successfully."
+    assert response.data is not None
+    assert response.data["overall_winner"] == "run_latest"
+
+
+def test_graph_summarize_latest_and_best_by_metric_uses_summary(base_graph_state):
+    state = {**base_graph_state, "message": "summarize latest run vs best run by accuracy"}
+
+    fake_parsed_request = ParsedUserRequest(
+        intent="summarize_compare",
+        run_identifiers=["latest", "best_by:accuracy"],
+        metric=None,
+    )
+    fake_compare = {
+        "overall_winner": "run_latest",
+        "metrics_comparison": {
+            "accuracy": {"run_latest": 0.91, "run_best_accuracy": 0.89, "winner": "run_latest"},
+            "f1_score": {"run_latest": 0.88, "run_best_accuracy": 0.87, "winner": "run_latest"},
+        },
+    }
+    fake_summary = {
+        "summary": "Run run_latest performed better overall.",
+        "metric_insights": ["Accuracy was higher for run_latest."],
+        "next_experiment_ideas": ["Try tuning learning rate for best_by run."],
+    }
+
+    with patch("ml_lab_agent.api.agents.chat_graph.nodes.parse_request", return_value=fake_parsed_request):
+        with patch(
+            "ml_lab_agent.api.agents.chat_graph.nodes.resolve_run_identifiers",
+            return_value=["run_latest", "run_best_accuracy"],
+        ):
+            with patch(
+                "ml_lab_agent.api.agents.chat_graph.nodes.compare_experiments",
+                return_value=fake_compare,
+            ):
+                with patch(
+                    "ml_lab_agent.api.agents.chat_graph.nodes.generate_compare_summary",
+                    return_value=fake_summary,
+                ):
+                    result = graph.invoke(state)
+
+    response = result["final_response"]
+
+    assert response.intent == "summarize_compare"
+    assert response.error is None
+    assert response.message == "Comparison summary generated successfully."
+    assert response.data is not None
+    assert response.data["compare_results"]["overall_winner"] == "run_latest"
+    assert response.data["summary"]["summary"] == "Run run_latest performed better overall."
+

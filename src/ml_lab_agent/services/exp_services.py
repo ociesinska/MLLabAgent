@@ -1,15 +1,10 @@
-try:
-    from mlflow.client import MlflowClient
-    from ml_lab_agent.repositories.mlflow_run_repository import MlflowRunRepository
-    from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
+from mlflow.client import MlflowClient
 
-    client = MlflowClient()
-    repository = MlflowRunRepository(client, "MLLabAgent Demo Runs")
-except Exception:
-    # Allow tests to import this module without mlflow/pandas/numpy binary deps
-    client = None
-    repository = None
-    AmbiguousRunIdentifier = Exception
+from ml_lab_agent.repositories.mlflow_run_repository import MlflowRunRepository
+from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
+
+client = MlflowClient()
+repository = MlflowRunRepository(client, "MLLabAgent Demo Runs")
 
 
 def return_all_runs():
@@ -67,6 +62,15 @@ def resolve_run_ids(candidates: list[str]) -> list[str]:
 
 
 def resolve_single_run_identifier(run_identifier: str) -> str:
+
+    if run_identifier == "latest":
+        latest_run = show_latest_run()
+        return latest_run["run_id"]
+    if run_identifier.startswith("best_by:"):
+        metric = run_identifier.split(":", 1)[1]
+        best_result = show_best_run_by_metric(metric)
+        return best_result["best_run"]["run_id"]
+
     try:
         return resolve_run_id(run_identifier)
     except ValueError:

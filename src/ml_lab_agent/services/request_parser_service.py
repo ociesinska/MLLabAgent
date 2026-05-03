@@ -7,6 +7,16 @@ from ml_lab_agent.schemas.chat_schemas import ParsedUserRequest
 from ml_lab_agent.services.llm_service import LLMProviderError, LLMResponseFormatError, _get_client
 
 
+def _provider_error_message(exc: Exception) -> str:
+    raw = str(exc)
+    normalized = raw.upper()
+
+    if "RESOURCE_EXHAUSTED" in normalized or ("429" in normalized and "QUOTA" in normalized):
+        return "Gemini API quota exceeded (429 RESOURCE_EXHAUSTED). Check quota/billing and retry later."
+
+    return "LLM provider unavailable."
+
+
 def parse_request(message: str) -> ParsedUserRequest:
     serialized_message = json.dumps(message)
     prompt = (
@@ -25,7 +35,7 @@ def parse_request(message: str) -> ParsedUserRequest:
     - compare
     - summarize_compare
     - show_best_run
-    - show latest run
+    - show_latest_run
     - unknown
 
     Rules:
@@ -35,6 +45,9 @@ def parse_request(message: str) -> ParsedUserRequest:
     - Use "show_best_run" when the user asks for the best run by a metric.
     - Use "show_latest_run" when the user asks for the latest, newest, most recent, or last run.
     - Use "unknown" if the request is not related to experiment runs.
+
+    If the user refers to "latest run", use run identifier "latest".
+    If the user refers to "best run by <metric>", use run identifier "best_by:<metric>".
 
     Return exactly this structure:
     {
@@ -66,6 +79,12 @@ def parse_request(message: str) -> ParsedUserRequest:
     User: show latest run
     Output: {"intent": "show_latest_run", "run_identifiers": [], "metric": null}
 
+    User: compare latest run with best run by f1_score
+    Output: {"intent": "compare", "run_identifiers": ["latest", "best_by:f1_score"], "metric": null}
+
+    User: summarize latest run vs best run by accuracy
+    Output: {"intent": "summarize_compare", "run_identifiers": ["latest", "best_by:accuracy"], "metric": null}
+
     User message:
     """
         + serialized_message
@@ -74,7 +93,7 @@ def parse_request(message: str) -> ParsedUserRequest:
         client = _get_client()
         response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
     except Exception as e:
-        raise LLMProviderError("LLM provider unavailable.") from e
+        raise LLMProviderError(_provider_error_message(e)) from e
 
     try:
         parsed = json.loads(response.text)

@@ -89,21 +89,25 @@ uv run python src/scripts/create_demo_runs.py --tracking-uri http://127.0.0.1:80
 http://127.0.0.1:8080
 ```
 
-4. Optional quick verification from terminal:
+## Supported Chat Requests
 
-```bash
-source .venv/bin/activate
-python - <<'PY'
-import mlflow
-from mlflow.tracking import MlflowClient
+The agent accepts natural language requests about ML experiments. Examples:
 
-mlflow.set_tracking_uri("http://127.0.0.1:8080")
-client = MlflowClient()
-for exp in client.search_experiments():
-	runs = client.search_runs([exp.experiment_id])
-	print(exp.experiment_id, exp.name, "runs:", len(runs))
-PY
 ```
+
+- show run baseline_lr
+- show latest run
+- show best run by accuracy
+- compare run baseline_lr and run tuned_cnn
+- compare latest run and best run by f1_score
+- summarize comparison of baseline_lr and tuned_cnn
+
+```
+
+
+## Environment Variables
+
+Use `.env.example` as a template
 
 ## Stop Running App
 
