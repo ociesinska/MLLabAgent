@@ -4,12 +4,13 @@ from json import JSONDecodeError
 
 from google import genai
 from pydantic import ValidationError
-
+from ml_lab_agent.config.config import get_settings
 from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput, LLMProviderError, LLMResponseFormatError
 
+settings = get_settings()
 
 def _get_client() -> genai.Client:
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = settings.gemini_api_key
     if not api_key:
         raise ValueError("Missing GEMINI_API_KEY environment variable.")
     return genai.Client(api_key=api_key)
@@ -70,7 +71,7 @@ def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=settings.gemini_model,
             contents=prompt,
         )
     except Exception as e:

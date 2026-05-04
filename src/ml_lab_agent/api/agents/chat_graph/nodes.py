@@ -14,6 +14,7 @@ from ml_lab_agent.services.exp_services import (
 from ml_lab_agent.services.llm_service import generate_compare_summary
 from ml_lab_agent.services.request_parser_service import parse_request
 from ml_lab_agent.services.run_formatting_service import format_run_for_response, format_runs_for_response
+from ml_lab_agent.services.agent_services import create_agent_plan, execute_agent_plan
 
 logger = logging.getLogger(__name__)
 
@@ -383,6 +384,57 @@ def show_latest_run_node(state: State):
         }
 
 
+def create_agent_plan_node(state: State):
+    try:
+        plan = create_agent_plan(state["message"])
+
+        return {"agent_plan": plan}
+
+    except Exception as e:
+        return {
+            "final_response": ChatResponse(
+                intent="agent_analyze",
+                message="Cannot create agent plan.",
+                data=None,
+                error=str(e),
+            )
+        }
+
+
+def execute_agent_plan_node(state: State):
+    if state.get("agent_plan") is None:
+        return {
+            "final_response": ChatResponse(
+                intent="agent_analyze",
+                message="Cannot process this request.",
+                data=None,
+                error="Missing agent plan in graph state.",
+            )
+        }
+    try:
+        result = execute_agent_plan(state["agent_plan"])
+        return {
+            "agent_result": result,
+            "final_response": ChatResponse(
+                intent="agent_analyze",
+                message="Agent analysis completed successfully.",
+                data={
+                    "plan": state["agent_plan"].model_dump(),
+                    "result": result,
+                },
+                error=None,
+            )
+        }
+    except Exception as e:
+        return {
+            "final_response": ChatResponse(
+                intent="agent_analyze",
+                message="Cannot execute agent plan.",
+                data=None,
+                error=str(e),
+            )
+        }
+
 def route_by_intent(state: State):
 
     if state.get("final_response") is not None:
@@ -402,5 +454,7 @@ def route_by_intent(state: State):
         return "show_best_run_node"
     if intent == "show_latest_run":
         return "show_latest_run_node"
+    if intent == "agent_analyze":
+        return "agent_analyze_path"
 
     return "unknown_node"

@@ -14,6 +14,8 @@ from ml_lab_agent.api.agents.chat_graph.nodes import (
     summarize_compare_node,
     unknown_node,
     validate_compare_node,
+    create_agent_plan_node,
+    execute_agent_plan_node
 )
 from ml_lab_agent.api.agents.chat_graph.state import State
 
@@ -29,6 +31,8 @@ graph_builder.add_node("summarize_compare_node", summarize_compare_node)
 graph_builder.add_node("fallback_summary_node", fallback_summary_node)
 graph_builder.add_node("unknown_node", unknown_node)
 graph_builder.add_node("validate_compare_node", validate_compare_node)
+graph_builder.add_node("create_agent_plan_node", create_agent_plan_node)
+graph_builder.add_node("execute_agent_plan_node", execute_agent_plan_node)
 
 graph_builder.add_edge(START, "parse_input_node")
 graph_builder.add_conditional_edges(
@@ -41,6 +45,7 @@ graph_builder.add_conditional_edges(
         "unknown_node": "unknown_node",
         "show_best_run_node": "show_best_run_node",
         "show_latest_run_node": "show_latest_run_node",
+        "agent_analyze_path": "create_agent_plan_node"
     },
 )
 
@@ -48,6 +53,8 @@ graph_builder.add_edge("show_node", END)
 graph_builder.add_edge("unknown_node", END)
 graph_builder.add_edge("show_best_run_node", END)
 graph_builder.add_edge("show_latest_run_node", END)
+graph_builder.add_edge("create_agent_plan_node", "execute_agent_plan_node")
+graph_builder.add_edge("execute_agent_plan_node", END)
 
 graph_builder.add_conditional_edges(
     "validate_compare_node",

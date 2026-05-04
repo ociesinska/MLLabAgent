@@ -21,6 +21,7 @@ class ParsedUserRequest(BaseModel):
         "summarize_compare",
         "show_best_run",
         "show_latest_run",
+        "agent_analyze",
         "unknown",
     ]
     run_identifiers: list[str] = Field(default_factory=list)

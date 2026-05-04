@@ -2,9 +2,12 @@ from mlflow.client import MlflowClient
 
 from ml_lab_agent.repositories.mlflow_run_repository import MlflowRunRepository
 from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
+from ml_lab_agent.config.config import get_settings
 
-client = MlflowClient()
-repository = MlflowRunRepository(client, "MLLabAgent Demo Runs")
+settings = get_settings()
+
+client = MlflowClient(tracking_uri=settings.mlflow_tracking_uri)
+repository = MlflowRunRepository(client, experiment_name=settings.mlflow_experiment_name)
 
 
 def return_all_runs():

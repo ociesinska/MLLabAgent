@@ -6,21 +6,27 @@ flowchart TD
     B --> C{route_by_intent}
 
     C -->|show| D[show_node]
-    C -->|compare| E[validate_compare_node]
+    C -->|show_latest_run| E[show_latest_run_node]
     C -->|show_best_run| F[show_best_run_node]
-    C -->|unknown| G[unknown_node]
+    C -->|compare| G[validate_compare_node]
+    C -->|summarize_compare| G
+    C -->|agent_analyze| H[create_agent_plan_node]
+    C -->|unknown| I[unknown_node]
 
-    E -->|compare| H[compare_node]
-    E -->|summarize_compare| I[compare_for_summary_node]
+    G -->|compare| J[compare_node]
+    G -->|summarize_compare| K[compare_for_summary_node]
+    K --> L[summarize_compare_node]
+    L --> M{LLM error?}
+    M -->|yes| N[fallback_summary_node]
+    M -->|no| O[END]
 
-    I --> J[summarize_compare_node]
-    J --> K{LLM error?}
-    K -->|yes| L[fallback_summary_node]
-    K -->|no| M[END]
+    H --> P[execute_agent_plan_node]
 
-    D --> M
-    F --> M
-    G --> M
-    H --> M
-    L --> M
+    D --> O
+    E --> O
+    F --> O
+    I --> O
+    J --> O
+    N --> O
+    P --> O
 ```

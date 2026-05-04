@@ -36,6 +36,7 @@ def parse_request(message: str) -> ParsedUserRequest:
     - summarize_compare
     - show_best_run
     - show_latest_run
+    - agent_analyze
     - unknown
 
     Rules:
@@ -44,6 +45,7 @@ def parse_request(message: str) -> ParsedUserRequest:
     - Use "summarize_compare" when the user wants an analysis/summary of compared runs.
     - Use "show_best_run" when the user asks for the best run by a metric.
     - Use "show_latest_run" when the user asks for the latest, newest, most recent, or last run.
+    - Use "agent_analyze" when the user asks to analyze, investigate, review, or recommend next steps based on experiments.
     - Use "unknown" if the request is not related to experiment runs.
 
     If the user refers to "latest run", use run identifier "latest".
@@ -84,6 +86,12 @@ def parse_request(message: str) -> ParsedUserRequest:
 
     User: summarize latest run vs best run by accuracy
     Output: {"intent": "summarize_compare", "run_identifiers": ["latest", "best_by:accuracy"], "metric": null}
+
+    User: analyze latest experiment
+    Output: {"intent": "agent_analyze", "run_identifiers": [], "metric": null}
+
+    User: analyze latest experiment and recommend next step
+    Output: {"intent": "agent_analyze", "run_identifiers": [], "metric": null}
 
     User message:
     """
