@@ -394,6 +394,11 @@ def test_unknown_node_returns_unknown_chat_response(base_state):
     result = unknown_node(base_state)
     response = result["final_response"]
 
+    assert response.intent == "unknown"
+    assert response.message == "Cannot process this request."
+    assert response.data is None
+    assert response.error == "Unsupported request."
+
 
 @pytest.fixture
 def mock_show_latest_run_success(monkeypatch):

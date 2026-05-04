@@ -14,14 +14,18 @@ It can:
 ## Requirements
 
 - Python 3.11 or 3.12
-- Virtual environment (.venv)
+- uv
 
 ## Setup
 
 ```bash
-python -m venv .venv
+uv sync
+```
+
+Optional: activate the created virtual environment manually.
+
+```bash
 source .venv/bin/activate
-pip install -e .
 ```
 
 ## Configure GEMINI_API_KEY
@@ -47,31 +51,21 @@ GEMINI_API_KEY=your_api_key_here
 Then run uvicorn with env-file:
 
 ```bash
-source .venv/bin/activate
-python -m uvicorn --app-dir src ml_lab_agent.main:app --host 127.0.0.1 --port 8000 --env-file .env
+uv run python -m uvicorn --app-dir src ml_lab_agent.main:app --host 127.0.0.1 --port 8000 --env-file .env
 ```
 
 ## Run Application
 
-Use one of:
+Recommended:
 
 ```bash
-source .venv/bin/activate
-PYTHONPATH=src python -m ml_lab_agent.main
-```
-
-or
-
-```bash
-source .venv/bin/activate
-python -m uvicorn --app-dir src ml_lab_agent.main:app --host 127.0.0.1 --port 8000
+uv run python -m uvicorn --app-dir src ml_lab_agent.main:app --host 127.0.0.1 --port 8000 --env-file .env
 ```
 
 For local development with auto-reload:
 
 ```bash
-source .venv/bin/activate
-python -m uvicorn --app-dir src ml_lab_agent.main:app --host 127.0.0.1 --port 8000 --env-file .env --reload
+uv run python -m uvicorn --app-dir src ml_lab_agent.main:app --host 127.0.0.1 --port 8000 --env-file .env --reload
 ```
 
 ## MLflow Demo Runs
@@ -81,14 +75,12 @@ Use two terminals.
 1. Start MLflow tracking server on port 8080:
 
 ```bash
-source .venv/bin/activate
-mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 127.0.0.1 --port 8080
+uv run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 127.0.0.1 --port 8080
 ```
 
 2. In another terminal, create demo runs in experiment `MLLabAgent Demo Runs`:
 
 ```bash
-source .venv/bin/activate
 uv run python src/scripts/create_demo_runs.py --tracking-uri http://127.0.0.1:8080 --experiment-name "MLLabAgent Demo Runs"
 ```
 
@@ -102,8 +94,6 @@ http://127.0.0.1:8080
 
 The agent accepts natural language requests about ML experiments. Examples:
 
-```
-
 - show run baseline_lr
 - show latest run
 - show best run by accuracy
@@ -111,12 +101,31 @@ The agent accepts natural language requests about ML experiments. Examples:
 - compare latest run and best run by f1_score
 - summarize comparison of baseline_lr and tuned_cnn
 
-```
+## Architecture
 
+High-level flow:
+
+FastAPI -> LangGraph -> Services -> Repositories -> MLflow
+
+- FastAPI exposes the `/chat` endpoint.
+- LangGraph orchestrates the workflow and fallback paths.
+- Services contain business logic such as run comparison, best-run selection, and identifier resolution.
+- Repositories read experiment data from MLflow.
+- LLM services parse natural language requests and generate experiment summaries.
 
 ## Environment Variables
 
-Use `.env.example` as a template
+Use `.env.example` as a template:
+
+```bash
+cp .env.example .env
+```
+
+Run tests (excluding integration tests):
+
+```bash
+uv run pytest -m "not integration"
+```
 
 ## Stop Running App
 

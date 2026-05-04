@@ -7,7 +7,6 @@ from ml_lab_agent.api.routes.chat import chat_router
 from ml_lab_agent.api.routes.experiments import experiment_router
 from ml_lab_agent.api.routes.health import health_router
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",

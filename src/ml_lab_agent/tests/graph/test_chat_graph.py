@@ -301,4 +301,3 @@ def test_graph_summarize_latest_and_best_by_metric_uses_summary(base_graph_state
     assert response.data is not None
     assert response.data["compare_results"]["overall_winner"] == "run_latest"
     assert response.data["summary"]["summary"] == "Run run_latest performed better overall."
-

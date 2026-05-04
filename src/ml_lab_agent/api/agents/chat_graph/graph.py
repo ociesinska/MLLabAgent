@@ -40,7 +40,7 @@ graph_builder.add_conditional_edges(
         "summarize_path": "validate_compare_node",
         "unknown_node": "unknown_node",
         "show_best_run_node": "show_best_run_node",
-        "show_latest_run_node": "show_latest_run_node"
+        "show_latest_run_node": "show_latest_run_node",
     },
 )
 

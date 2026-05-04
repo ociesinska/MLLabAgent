@@ -20,21 +20,16 @@ def show_latest_run() -> dict:
 
     if not runs:
         raise ValueError("No runs found.")
-    
-    runs_with_start_time = [
-        run for run in runs
-        if run.get("start_time") is not None
-    ]
+
+    runs_with_start_time = [run for run in runs if run.get("start_time") is not None]
 
     if not runs_with_start_time:
         raise ValueError("No runs with start_time found.")
-    
-    latest_run = max(
-        runs_with_start_time,
-        key = lambda run: run["start_time"]
-    )
-    
+
+    latest_run = max(runs_with_start_time, key=lambda run: run["start_time"])
+
     return latest_run
+
 
 def get_run_metrics(run_id: str):
     return repository.get_run_metrics(run_id)

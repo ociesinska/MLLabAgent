@@ -3,15 +3,20 @@ import logging
 from ml_lab_agent.api.agents.chat_graph.state import State
 from ml_lab_agent.schemas.chat_schemas import ChatResponse
 from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
-from ml_lab_agent.services.exp_services import compare_experiments, resolve_run_identifiers, return_all_runs, select_run, show_best_run_by_metric, show_latest_run
+from ml_lab_agent.services.exp_services import (
+    compare_experiments,
+    resolve_run_identifiers,
+    return_all_runs,
+    select_run,
+    show_best_run_by_metric,
+    show_latest_run,
+)
 from ml_lab_agent.services.llm_service import generate_compare_summary
 from ml_lab_agent.services.request_parser_service import parse_request
-from ml_lab_agent.services.run_formatting_service import (
-    format_run_for_response,
-    format_runs_for_response
-)
+from ml_lab_agent.services.run_formatting_service import format_run_for_response, format_runs_for_response
 
 logger = logging.getLogger(__name__)
+
 
 def parse_input_node(state: State):
     request_parsed = None
@@ -160,8 +165,8 @@ def validate_compare_node(state: State):
                 intent=state["intent"],
                 message="Cannot process this request.",
                 data=None,
-                error="The selected references point to the same run, so there are not two unique runs to compare."
-                )
+                error="The selected references point to the same run, so there are not two unique runs to compare.",
+            )
         }
 
     if len(set(run_ids)) < 2:
@@ -238,7 +243,6 @@ def compare_for_summary_node(state: State):
 
 def summarize_compare_node(state: State):
     if state["compare_results"] is None:
-
         logger.warning("Missing compare_results in summarize_compare_node.")
 
         return {
@@ -264,7 +268,6 @@ def summarize_compare_node(state: State):
             "llm_error": None,
         }
     except Exception as e:
-
         logger.warning("LLM summary generation failed, using fallback. Error: %s", str(e))
 
         return {"llm_error": str(e)}
@@ -281,7 +284,7 @@ def route_after_summary(state: State):
 def fallback_summary_node(state: State):
 
     logger.info("Using deterministic fallback summary.")
-    
+
     compare_results = state["compare_results"]
     overall_winner = compare_results["overall_winner"]
     metric_names = list(compare_results["metrics_comparison"].keys())
@@ -355,6 +358,7 @@ def show_best_run_node(state: State):
                 error=str(e),
             )
         }
+
 
 def show_latest_run_node(state: State):
     try:
