@@ -1,6 +1,15 @@
 # MLLabAgent
 
-AI Agent for ML experiments analysis, run comparison, next steps recommendation, and report generation.
+MLLabAgent is a FastAPI + LangGraph assistant for analyzing MLflow experiment runs.
+
+It can:
+- show runs from MLflow
+- show latest run
+- show best run by metric
+- compare two runs
+- compare metrics and parameters
+- summarize experiment differences using an LLM
+- fallback to deterministic summary if the LLM fails
 
 ## Requirements
 
