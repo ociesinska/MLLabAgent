@@ -1,13 +1,14 @@
 import json
-import os
 from json import JSONDecodeError
 
 from google import genai
 from pydantic import ValidationError
+
 from ml_lab_agent.config.config import get_settings
 from ml_lab_agent.schemas.llm_schemas import CompareSummaryOutput, LLMProviderError, LLMResponseFormatError
 
 settings = get_settings()
+
 
 def _get_client() -> genai.Client:
     api_key = settings.gemini_api_key
@@ -75,7 +76,7 @@ def generate_compare_summary(compare_result: dict) -> CompareSummaryOutput:
             contents=prompt,
         )
     except Exception as e:
-        raise LLMProviderError("LLM provider unavailable.") from e
+        raise LLMProviderError(f"LLM provider unavailable: {type(e).__name__}: {e}") from e
 
     try:
         raw_text = response.text

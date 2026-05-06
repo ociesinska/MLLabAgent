@@ -1,18 +1,19 @@
-from ml_lab_agent.schemas.agent_schemas import AgentPlan
-from ml_lab_agent.services.llm_service import _get_client
-from ml_lab_agent.config.config import get_settings
 import json
 from json import JSONDecodeError
+
 from pydantic import ValidationError
+
+from ml_lab_agent.config.config import get_settings
+from ml_lab_agent.schemas.agent_schemas import AgentPlan
 from ml_lab_agent.schemas.llm_schemas import LLMProviderError, LLMResponseFormatError
 from ml_lab_agent.services.exp_services import (
-    show_latest_run,
-    show_best_run_by_metric,
     compare_experiments,
     resolve_single_run_identifier,
     select_run,
+    show_best_run_by_metric,
+    show_latest_run,
 )
-from ml_lab_agent.services.llm_service import generate_compare_summary
+from ml_lab_agent.services.llm_service import _get_client, generate_compare_summary
 
 
 def _resolve_run_reference(context: dict, reference: str) -> dict | None:
@@ -29,7 +30,8 @@ def create_agent_plan(message: str) -> AgentPlan:
 
     serialized_message = json.dumps(message, ensure_ascii=False)
 
-    prompt = """
+    prompt = (
+        """
     You are an ML experiment analysis planner.
 
     Your task is to convert the user request into a safe, structured plan.
@@ -115,22 +117,22 @@ def create_agent_plan(message: str) -> AgentPlan:
     }
 
     User message:
-    """ + serialized_message
+    """
+        + serialized_message
+    )
 
-    try: 
-        response = client.models.generate_content(
-            model=settings.gemini_model,
-            contents=prompt
-        )
+    try:
+        response = client.models.generate_content(model=settings.gemini_model, contents=prompt)
     except Exception as e:
-        raise LLMProviderError("LLM provider unavailable.") from e
-    
+        raise LLMProviderError(f"LLM provider unavailable: {type(e).__name__}: {e}") from e
+
     try:
         raw_text = response.text
         parsed = json.loads(raw_text)
         return AgentPlan.model_validate(parsed)
     except (JSONDecodeError, ValidationError) as e:
         raise LLMResponseFormatError("Invalid LLM response format.") from e
+
 
 def execute_agent_plan(plan: AgentPlan) -> dict:
     context = {}

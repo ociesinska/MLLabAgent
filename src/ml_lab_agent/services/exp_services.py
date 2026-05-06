@@ -1,8 +1,8 @@
 from mlflow.client import MlflowClient
 
+from ml_lab_agent.config.config import get_settings
 from ml_lab_agent.repositories.mlflow_run_repository import MlflowRunRepository
 from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
-from ml_lab_agent.config.config import get_settings
 
 settings = get_settings()
 

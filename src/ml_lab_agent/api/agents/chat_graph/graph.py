@@ -3,6 +3,8 @@ from langgraph.graph import END, START, StateGraph
 from ml_lab_agent.api.agents.chat_graph.nodes import (
     compare_for_summary_node,
     compare_node,
+    create_agent_plan_node,
+    execute_agent_plan_node,
     fallback_summary_node,
     parse_input_node,
     route_after_summary,
@@ -14,8 +16,6 @@ from ml_lab_agent.api.agents.chat_graph.nodes import (
     summarize_compare_node,
     unknown_node,
     validate_compare_node,
-    create_agent_plan_node,
-    execute_agent_plan_node
 )
 from ml_lab_agent.api.agents.chat_graph.state import State
 
@@ -45,7 +45,7 @@ graph_builder.add_conditional_edges(
         "unknown_node": "unknown_node",
         "show_best_run_node": "show_best_run_node",
         "show_latest_run_node": "show_latest_run_node",
-        "agent_analyze_path": "create_agent_plan_node"
+        "agent_analyze_path": "create_agent_plan_node",
     },
 )
 

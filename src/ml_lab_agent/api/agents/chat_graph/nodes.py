@@ -3,6 +3,7 @@ import logging
 from ml_lab_agent.api.agents.chat_graph.state import State
 from ml_lab_agent.schemas.chat_schemas import ChatResponse
 from ml_lab_agent.schemas.exp_schemas import AmbiguousRunIdentifier
+from ml_lab_agent.services.agent_services import create_agent_plan, execute_agent_plan
 from ml_lab_agent.services.exp_services import (
     compare_experiments,
     resolve_run_identifiers,
@@ -14,7 +15,6 @@ from ml_lab_agent.services.exp_services import (
 from ml_lab_agent.services.llm_service import generate_compare_summary
 from ml_lab_agent.services.request_parser_service import parse_request
 from ml_lab_agent.services.run_formatting_service import format_run_for_response, format_runs_for_response
-from ml_lab_agent.services.agent_services import create_agent_plan, execute_agent_plan
 
 logger = logging.getLogger(__name__)
 
@@ -403,14 +403,16 @@ def create_agent_plan_node(state: State):
 
 def execute_agent_plan_node(state: State):
     if state.get("agent_plan") is None:
-        return {
-            "final_response": ChatResponse(
-                intent="agent_analyze",
-                message="Cannot process this request.",
-                data=None,
-                error="Missing agent plan in graph state.",
-            )
-        }
+        if state.get("final_response") is not None:
+            return {"final_response": state["final_response"]}
+            return {
+                "final_response": ChatResponse(
+                    intent="agent_analyze",
+                    message="Cannot process this request.",
+                    data=None,
+                    error="Missing agent plan in graph state.",
+                )
+            }
     try:
         result = execute_agent_plan(state["agent_plan"])
         return {
@@ -423,7 +425,7 @@ def execute_agent_plan_node(state: State):
                     "result": result,
                 },
                 error=None,
-            )
+            ),
         }
     except Exception as e:
         return {
@@ -434,6 +436,7 @@ def execute_agent_plan_node(state: State):
                 error=str(e),
             )
         }
+
 
 def route_by_intent(state: State):
 
